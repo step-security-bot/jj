@@ -1,0 +1,13 @@
+[aliases]
+# Placeholder: added by user
+
+[revset-aliases]
+'trunk()' = '''
+latest(
+  remote_branches(exact:"main", exact:"origin") | 
+  remote_branches(exact:"master", exact:"origin") | 
+  remote_branches(exact:"trunk", exact:"origin") |
+  root
+)
+'''
+

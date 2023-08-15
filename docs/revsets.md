@@ -157,6 +157,25 @@ For example:
 'user(x)' = 'author(x) | committer(x)'
 ```
 
+### Built-in Aliases
+
+The following aliases are built-in and might be relied on to exist. In every case,
+these functions are defined as aliases to allow you to overwrite them in specific
+situations.
+
+* `trunk()`: Resolves to the head commit for the trunk branch of the `origin`
+  remote. The branches `main`, `master`, and `trunk` are tried in order.
+  If none of the branches exist, it evaluates to the `root` symbol.
+
+  Can be overwritten per repository to point to the correct trunk branch if none
+  of the preset branches make sense, or if the an incorrect branch is detected
+  due to ordering:
+
+  ```toml
+  [revset-aliases]
+  'trunk()' = 'latest(remote_branches(exact:"your-branch", exact:"your-remote"))'
+  ```
+
 ## Examples
 
 Show the parent(s) of the working-copy commit (like `git log -1 HEAD`):
