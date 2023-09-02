@@ -163,6 +163,12 @@ impl UserSettings {
         })
     }
 
+    pub fn immutable_heads_revset(&self) -> String {
+        self.config
+            .get_string("revsets.immutable-heads")
+            .unwrap_or_else(|_| "remote_branches() | tags()".to_string())
+    }
+
     pub fn signature(&self) -> Signature {
         let timestamp = self.timestamp.clone().unwrap_or_else(Timestamp::now);
         Signature {

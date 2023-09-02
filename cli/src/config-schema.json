@@ -300,6 +300,11 @@
                     "type": "string",
                     "description": "Revisions to give shorter change and commit IDs to",
                     "default": "<revsets.log>"
+                },
+                "immutable-heads": {
+                    "type": "string",
+                    "description": "Revisions to consider immutable. Ancestors of these are also considered immutable. The root commit is always considered immutable.",
+                    "default": "remote_branches() | tags()"
                 }
             },
             "additionalProperties": {

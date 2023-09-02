@@ -1241,16 +1241,20 @@ impl WorkspaceCommandHelper {
                 .map(|commit| commit.id().clone())
                 .collect(),
         );
-        let immutable_revset =
-            RevsetExpression::commit(self.repo().store().root_commit_id().clone());
-        let invalid_revset = to_rewrite_revset.intersection(&immutable_revset);
-        let revset = self.evaluate_revset(invalid_revset)?;
+        let immutable_heads_revset =
+            self.parse_revset(&self.settings.immutable_heads_revset(), None)?;
+        let immutable_revset = immutable_heads_revset
+            .ancestors()
+            .union(&RevsetExpression::commit(
+                self.repo().store().root_commit_id().clone(),
+            ));
+        let revset = self.evaluate_revset(to_rewrite_revset.intersection(&immutable_revset))?;
         if let Some(commit) = revset.iter().commits(self.repo().store()).next() {
             let commit = commit?;
-            return Err(user_error(format!(
-                "Cannot rewrite commit {}",
-                short_commit_hash(commit.id()),
-            )));
+            return Err(user_error_with_hint(
+                format!("Commit {} is immutable", short_commit_hash(commit.id()),),
+                "Configure the set of immutable commits via `revsets.immutable-heads`.",
+            ));
         }
 
         Ok(())

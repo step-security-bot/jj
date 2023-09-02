@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Support for the Watchman filesystem monitor is now bundled by default. Set
   `core.fsmonitor = "watchman"` in your repo to enable.
 
+* You can now configure the set of immutable commits via
+  `revsets.immutable-heads`. For example, set it to `"main"` to prevent
+  rewriting commits on the `main` branch.
+
 * `jj op log` now supports `--no-graph`.
 
 ### Fixed bugs
