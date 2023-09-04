@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * You can now configure the set of immutable commits via
   `revsets.immutable-heads`. For example, set it to `"main"` to prevent
-  rewriting commits on the `main` branch.
+  rewriting commits on the `main` branch. The new `immutable()` revset resolves
+  to these immutable commits.
 
 * `jj op log` now supports `--no-graph`.
 

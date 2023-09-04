@@ -35,7 +35,6 @@ fn test_duplicate() {
     let test_env = TestEnvironment::default();
     test_env.jj_cmd_success(test_env.env_root(), &["init", "repo", "--git"]);
     let repo_path = test_env.env_root().join("repo");
-
     create_commit(&test_env, &repo_path, "a", &[]);
     create_commit(&test_env, &repo_path, "b", &[]);
     create_commit(&test_env, &repo_path, "c", &["a", "b"]);

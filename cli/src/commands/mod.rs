@@ -1807,14 +1807,15 @@ fn cmd_log(ui: &mut Ui, command: &CommandHelper, args: &LogArgs) -> Result<(), C
                  often not useful because all non-empty commits touch '.'.  If you meant to show \
                  the working copy commit, pass -r '@' instead."
             )?;
-        } else if revset.is_empty()
-            && revset::parse(only_path, &workspace_command.revset_parse_context()).is_ok()
-        {
-            writeln!(
-                ui.warning(),
-                "warning: The argument {only_path:?} is being interpreted as a path. To specify a \
-                 revset, pass -r {only_path:?} instead."
-            )?;
+        } else if revset.is_empty() {
+            let parse_context = workspace_command.revset_parse_context()?;
+            if revset::parse(only_path, &parse_context).is_ok() {
+                writeln!(
+                    ui.warning(),
+                    "warning: The argument {only_path:?} is being interpreted as a path. To \
+                     specify a revset, pass -r {only_path:?} instead."
+                )?;
+            }
         }
     }
 
@@ -2717,18 +2718,15 @@ from the source will be moved into the parent.
 
         if let [only_path] = &args.paths[..] {
             let (_, matches) = command.matches().subcommand().unwrap();
-            if matches.value_source("revision").unwrap() == ValueSource::DefaultValue
-                && revset::parse(
-                    only_path,
-                    &tx.base_workspace_helper().revset_parse_context(),
-                )
-                .is_ok()
-            {
-                writeln!(
-                    ui.warning(),
-                    "warning: The argument {only_path:?} is being interpreted as a path. To \
-                     specify a revset, pass -r {only_path:?} instead."
-                )?;
+            if matches.value_source("revision").unwrap() == ValueSource::DefaultValue {
+                let parse_ctx = tx.base_workspace_helper().revset_parse_context()?;
+                if revset::parse(only_path, &parse_ctx).is_ok() {
+                    writeln!(
+                        ui.warning(),
+                        "warning: The argument {only_path:?} is being interpreted as a path. To \
+                         specify a revset, pass -r {only_path:?} instead."
+                    )?;
+                }
             }
         }
     }

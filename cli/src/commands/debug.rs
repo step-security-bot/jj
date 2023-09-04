@@ -200,10 +200,10 @@ fn cmd_debug_revset(
     args: &DebugRevsetArgs,
 ) -> Result<(), CommandError> {
     let workspace_command = command.workspace_helper(ui)?;
-    let workspace_ctx = workspace_command.revset_parse_context();
+    let parse_ctx = workspace_command.revset_parse_context()?;
     let repo = workspace_command.repo().as_ref();
 
-    let expression = revset::parse(&args.revision, &workspace_ctx)?;
+    let expression = revset::parse(&args.revision, &parse_ctx)?;
     writeln!(ui, "-- Parsed:")?;
     writeln!(ui, "{expression:#?}")?;
     writeln!(ui)?;

@@ -862,6 +862,7 @@ struct ParseState<'a> {
     aliases_expanding: &'a [RevsetAliasId<'a>],
     locals: &'a HashMap<&'a str, Rc<RevsetExpression>>,
     user_email: &'a str,
+    immutable_heads: Option<&'a str>,
     workspace_ctx: &'a Option<RevsetWorkspaceContext<'a>>,
 }
 
@@ -887,6 +888,7 @@ impl ParseState<'_> {
             aliases_expanding: &aliases_expanding,
             locals,
             user_email: self.user_email,
+            immutable_heads: self.immutable_heads,
             workspace_ctx: self.workspace_ctx,
         };
         f(expanding_state).map_err(|e| {
@@ -1266,6 +1268,20 @@ static BUILTIN_FUNCTION_MAP: Lazy<HashMap<&'static str, RevsetFunction>> = Lazy:
         };
         Ok(candidates.latest(count))
     });
+    map.insert("immutable", |name, arguments_pair, mut state| {
+        expect_no_arguments(name, arguments_pair)?;
+        if let Some(immutable_heads) = state.immutable_heads {
+            // Avoid infinite recursion if `immutable()` appears in the expression for
+            // immutable heads
+            state.immutable_heads = None;
+            let immutable_heads_expression = parse_program(immutable_heads, state)?;
+            Ok(immutable_heads_expression
+                .ancestors()
+                .union(&RevsetExpression::root()))
+        } else {
+            Ok(RevsetExpression::root())
+        }
+    });
     map.insert("merges", |name, arguments_pair, _state| {
         expect_no_arguments(name, arguments_pair)?;
         Ok(RevsetExpression::filter(
@@ -1568,6 +1584,7 @@ pub fn parse(
         aliases_expanding: &[],
         locals: &HashMap::new(),
         user_email: &context.user_email,
+        immutable_heads: context.immutable_heads.as_deref(),
         workspace_ctx: &context.workspace,
     };
     parse_program(revset_str, state)
@@ -2564,6 +2581,7 @@ impl Iterator for ReverseRevsetIterator {
 pub struct RevsetParseContext<'a> {
     pub aliases_map: &'a RevsetAliasesMap,
     pub user_email: String,
+    pub immutable_heads: Option<String>,
     pub workspace: Option<RevsetWorkspaceContext<'a>>,
 }
 
@@ -2601,6 +2619,7 @@ mod tests {
         let context = RevsetParseContext {
             aliases_map: &aliases_map,
             user_email: "test.user@example.com".to_string(),
+            immutable_heads: None,
             workspace: None,
         };
         // Map error to comparable object
@@ -2625,6 +2644,7 @@ mod tests {
         let context = RevsetParseContext {
             aliases_map: &aliases_map,
             user_email: "test.user@example.com".to_string(),
+            immutable_heads: None,
             workspace: Some(workspace_ctx),
         };
         // Map error to comparable object

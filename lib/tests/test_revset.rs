@@ -47,6 +47,7 @@ fn resolve_symbol(repo: &dyn Repo, symbol: &str) -> Result<Vec<CommitId>, Revset
     let context = RevsetParseContext {
         aliases_map: &RevsetAliasesMap::new(),
         user_email: String::new(),
+        immutable_heads: None,
         workspace: None,
     };
     let expression = parse(symbol, &context).unwrap();
@@ -175,6 +176,7 @@ fn test_resolve_symbol_commit_id() {
     let context = RevsetParseContext {
         aliases_map: &RevsetAliasesMap::new(),
         user_email: settings.user_email(),
+        immutable_heads: None,
         workspace: None,
     };
     assert_matches!(
@@ -781,6 +783,7 @@ fn resolve_commit_ids(repo: &dyn Repo, revset_str: &str) -> Vec<CommitId> {
     let context = RevsetParseContext {
         aliases_map: &RevsetAliasesMap::new(),
         user_email: settings.user_email(),
+        immutable_heads: None,
         workspace: None,
     };
     let expression = optimize(parse(revset_str, &context).unwrap());
@@ -806,6 +809,7 @@ fn resolve_commit_ids_in_workspace(
     let context = RevsetParseContext {
         aliases_map: &RevsetAliasesMap::new(),
         user_email: settings.user_email(),
+        immutable_heads: None,
         workspace: Some(workspace_ctx),
     };
     let expression = optimize(parse(revset_str, &context).unwrap());
@@ -2305,6 +2309,63 @@ fn test_evaluate_expression_committer(use_git: bool) {
     assert_eq!(
         resolve_commit_ids(mut_repo, "visible_heads() & committer(\"name2\")"),
         vec![]
+    );
+}
+
+#[test_case(false ; "local backend")]
+#[test_case(true ; "git backend")]
+fn test_evaluate_expression_immutable(use_git: bool) {
+    let settings = testutils::user_settings();
+    let test_repo = TestRepo::init(use_git);
+    let repo = &test_repo.repo;
+
+    let root_commit = repo.store().root_commit();
+    let mut tx = repo.start_transaction(&settings, "test");
+    let mut_repo = tx.mut_repo();
+    let mut graph_builder = CommitGraphBuilder::new(&settings, mut_repo);
+    let commit1 = graph_builder.initial_commit();
+    let commit2 = graph_builder.commit_with_parents(&[&commit1]);
+    let _commit3 = graph_builder.commit_with_parents(&[&commit1]);
+
+    let resolve_with_immutable_heads = |immutable_heads: Option<String>| -> Vec<CommitId> {
+        let context = RevsetParseContext {
+            aliases_map: &RevsetAliasesMap::new(),
+            user_email: settings.user_email(),
+            immutable_heads,
+            workspace: None,
+        };
+        let expression = parse("immutable()", &context).unwrap();
+        let symbol_resolver = DefaultSymbolResolver::new(mut_repo);
+        let expression = expression
+            .resolve_user_expression(mut_repo, &symbol_resolver)
+            .unwrap();
+        expression.evaluate(mut_repo).unwrap().iter().collect()
+    };
+
+    // Defaults to root()
+    assert_eq!(
+        resolve_with_immutable_heads(None),
+        vec![root_commit.id().clone()]
+    );
+
+    // Includes ancestors
+    assert_eq!(
+        resolve_with_immutable_heads(Some(commit2.id().hex())),
+        vec![
+            commit2.id().clone(),
+            commit1.id().clone(),
+            root_commit.id().clone()
+        ]
+    );
+    // Includes root even if set is empty
+    assert_eq!(
+        resolve_with_immutable_heads(Some("none()".to_string())),
+        vec![root_commit.id().clone()]
+    );
+    // No crash when using `immutable()` recursively
+    assert_eq!(
+        resolve_with_immutable_heads(Some("immutable()".to_string())),
+        vec![root_commit.id().clone()]
     );
 }
 

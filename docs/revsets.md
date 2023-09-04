@@ -109,6 +109,9 @@ revsets (expressions) as arguments.
   `present(HEAD@git)`.
 * `visible_heads()`: All visible heads (same as `heads(all())`).
 * `root()`: The virtual commit that is the oldest ancestor of all other commits.
+* `immutable()`: Commits that shouldn't be rewritten. Defined as the ancestors
+  of the revset configured in `revsets.immutable-heads`, as well as the `root()`
+  commit (only makes a difference if the set of heads is empty).
 * `heads(x)`: Commits in `x` that are not ancestors of other commits in `x`.
   Note that this is different from
   [Mercurial's](https://repo.mercurial-scm.org/hg/help/revsets) `heads(x)`

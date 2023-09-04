@@ -1078,8 +1078,9 @@ impl WorkspaceCommandHelper {
         &self,
         revision_str: &str,
         ui: Option<&mut Ui>,
-    ) -> Result<Rc<RevsetExpression>, RevsetParseError> {
-        let expression = revset::parse(revision_str, &self.revset_parse_context())?;
+    ) -> Result<Rc<RevsetExpression>, CommandError> {
+        let parse_context = self.revset_parse_context()?;
+        let expression = revset::parse(revision_str, &parse_context)?;
         if let Some(ui) = ui {
             fn has_legacy_rule(expression: &Rc<RevsetExpression>) -> bool {
                 match expression.as_ref() {
@@ -1148,17 +1149,19 @@ impl WorkspaceCommandHelper {
         Ok(revset_expression.evaluate(self.repo().as_ref())?)
     }
 
-    pub(crate) fn revset_parse_context(&self) -> RevsetParseContext {
+    pub(crate) fn revset_parse_context(&self) -> Result<RevsetParseContext, CommandError> {
         let workspace_context = RevsetWorkspaceContext {
             cwd: &self.cwd,
             workspace_id: self.workspace_id(),
             workspace_root: self.workspace.workspace_root(),
         };
-        RevsetParseContext {
+        let context = RevsetParseContext {
             aliases_map: &self.revset_aliases_map,
             user_email: self.settings.user_email(),
+            immutable_heads: Some(self.settings.immutable_heads_revset()),
             workspace: Some(workspace_context),
-        }
+        };
+        Ok(context)
     }
 
     pub(crate) fn revset_symbol_resolver(&self) -> DefaultSymbolResolver<'_> {
@@ -1241,13 +1244,7 @@ impl WorkspaceCommandHelper {
                 .map(|commit| commit.id().clone())
                 .collect(),
         );
-        let immutable_heads_revset =
-            self.parse_revset(&self.settings.immutable_heads_revset(), None)?;
-        let immutable_revset = immutable_heads_revset
-            .ancestors()
-            .union(&RevsetExpression::commit(
-                self.repo().store().root_commit_id().clone(),
-            ));
+        let immutable_revset = self.parse_revset("immutable()", None)?;
         let revset = self.evaluate_revset(to_rewrite_revset.intersection(&immutable_revset))?;
         if let Some(commit) = revset.iter().commits(self.repo().store()).next() {
             let commit = commit?;

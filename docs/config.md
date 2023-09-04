@@ -195,7 +195,8 @@ revsets.immutable-heads = "main@origin | (main@origin.. & ~mine())"
 ```
 
 Ancestors of the configured set are also immutable. The root commit always
-immutable even if the set is empty.
+immutable even if the set is empty. The resulting set of immutable commits is
+available as the `immutable()` [revset function](revsets.md#functions).
 
 ### Default revisions to log
 
