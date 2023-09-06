@@ -76,19 +76,15 @@ fn test_rewrite_immutable_commands() {
     test_env.jj_cmd_success(&repo_path, &["branch", "create", "main"]);
     test_env.jj_cmd_success(&repo_path, &["new", "description(b)"]);
     test_env.add_config(r#"revsets.immutable-heads = "main""#);
+
+    // Log shows mutable commits by default
     let stdout = test_env.jj_cmd_success(&repo_path, &["log"]);
     insta::assert_snapshot!(stdout, @r###"
     @  yqosqzyt test.user@example.com 2001-02-03 04:05:13.000 +07:00 3f89addf
     │  (empty) (no description set)
-    │ ◉  mzvwutvl test.user@example.com 2001-02-03 04:05:11.000 +07:00 main d809c5d9 conflict
-    ╭─┤  (empty) merge
-    ◉ │  kkmpptxz test.user@example.com 2001-02-03 04:05:10.000 +07:00 c8d4c7ca
-    │ │  b
-    │ ◉  zsuskuln test.user@example.com 2001-02-03 04:05:11.000 +07:00 6e11f430
-    ├─╯  c
-    ◉  qpvuntsm test.user@example.com 2001-02-03 04:05:08.000 +07:00 46a8dc51
-    │  a
-    ◉  zzzzzzzz root() 00000000
+    ◉  kkmpptxz test.user@example.com 2001-02-03 04:05:10.000 +07:00 c8d4c7ca
+    │  b
+    ~
     "###);
 
     // abandon
